@@ -8,7 +8,14 @@ import (
 
 type DataPack struct {
 }
+func NewDataPack() *DataPack {
+	return &DataPack{}
+}
 
+//直接返回自定义协议的头的长度
+func (dp *DataPack) GetDataPackHeadLen() uint32 {
+	return 8
+}
 //封包函数
 func (dp *DataPack)Pack(msg iface.IMessage)([]byte,error){
 data:=msg.GetData()

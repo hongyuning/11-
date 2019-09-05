@@ -12,7 +12,8 @@ type Server struct {
 	Port    uint32
 	Name    string
 	Version string
-	Router  iface.IRouter
+	//Router  iface.IRouter
+	msghandle *MsgHandle
 }
 
 func NewServer(name string) iface.IServer {
@@ -21,7 +22,7 @@ func NewServer(name string) iface.IServer {
 		Port:    Configdecribe.GlobalConfig.Port,
 		Name:    Configdecribe.GlobalConfig.Name,
 		Version: Configdecribe.GlobalConfig.Version,
-		Router:  &Router{},
+		msghandle:NewMsgHandle(),
 	}
 }
 
@@ -47,7 +48,7 @@ func (s *Server) Start() {
 				fmt.Println("conn  err", err)
 				return
 			}
-			myconnection := NewConnection(conn, cid,s.Router)
+			myconnection := NewConnection(conn, cid,s.msghandle)
 			cid++
 			go myconnection.Start()
 
@@ -64,7 +65,7 @@ func (s *Server) Serve() {
 	for {
 	}
 }
-func (s *Server) AddRouter(router iface.IRouter) {
+func (s *Server) AddRouter(msg uint32,router iface.IRouter) {
 	fmt.Println("AddRouter被调用。。。。。")
-	s.Router = router
+	s.msghandle.AddRouter(msg,router)
 }
