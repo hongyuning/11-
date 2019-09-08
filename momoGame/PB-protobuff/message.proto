@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+//服务器发送给客户端通知玩家的pid
+message SyncPid {
+    int32 Pid = 1;
+}
+
+//服务器广播消息
+message BroadCast {
+    int32 Pid = 1;
+    int32 Tp = 2; //命令类型 聊天，位置，打击
+    oneof Data {
+        string Content = 3;
+        Position P = 4;
+        int32 AcctionData = 5;
+    }
+}
+message Position {
+    float X = 1;
+    float Y = 2;
+    float Z = 3;
+    float V = 4;
+}
+
+//定义聊天协议
+message Talk{
+    string Content =1;
+}

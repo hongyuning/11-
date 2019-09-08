@@ -44,7 +44,18 @@ type AttackRouter struct {
 func (router *AttackRouter) Handle(req iface.IRquest) {
 	fmt.Println("处理攻击请求的路由逻辑")
 }
+func OnConnBegin (conn iface.IConnection){
+	conn.Send([]byte("上线成功"),300)
+  conn.SetProperty("name","lily")
+	conn.SetProperty("age","22")
 
+}
+func OnConnEnd(conn iface.IConnection){
+	fmt.Println("玩家下线")
+	v1:=conn.GetProperty("name")
+	v2:=conn.GetProperty("age")
+	fmt.Println(v1,v2)
+}
 
 
 func main() {
@@ -52,5 +63,10 @@ func main() {
 	a.AddRouter(0,&TestRouter{})
 	a.AddRouter(1,&MoveRouter{})
 	a.AddRouter(2,&AttackRouter{})
+	//注册钩子函数
+	a.RegistStartHookFunc(OnConnBegin)
+	a.RegistStopHookFunc(OnConnEnd)
+
 	a.Serve()
+	a.Stop()
 }

@@ -8,6 +8,8 @@ type IConnection interface {
 	Send([]byte,uint32)(int,error)
 	GetConnID()uint32
 	GetTCPConn()*net.TCPConn
+	SetProperty( string,interface{})
+	GetProperty( string)interface{}
 }
 
 type CallBackFunc func(rquest IRquest)
