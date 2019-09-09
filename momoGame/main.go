@@ -14,6 +14,7 @@ func main() {
 	server.RegistStartHookFunc(OnConnStartHookFunc)
 	server.RegistStopHookFunc(OnConnStopHookFunc)
 	server.AddRouter(2,&router.WorldChat{})
+	server.AddRouter(3,&router.Move{})
 	server.Serve()
 
 }
@@ -25,11 +26,25 @@ func OnConnStartHookFunc(conn iface.IConnection) {
 	player.SyncPid()
 	player.SyncPosition()
 	conn.SetProperty("pid",player.Pid)
+
 	//添加世界管理器
 	core.WorldMgrGlobal.AddPlayer(player)
 	totalplayers := len(core.WorldMgrGlobal.Players)
 	fmt.Println("新登录玩家为：", player.Pid, "当前玩家总数：", totalplayers)
+	player.SybcSurroundPlayersPostion()
 }
 func OnConnStopHookFunc(conn iface.IConnection) {
 	//conn.Stop()
+	pidInterface := conn.GetProperty("pid")
+
+	//断言
+	pid, ok := pidInterface.(int)
+	if !ok {
+		fmt.Println("pid 断言失败!")
+		return
+	}
+
+	p := core.WorldMgrGlobal.GetPlayByPid(pid)
+
+	p.OffLine()
 }

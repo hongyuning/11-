@@ -3,11 +3,12 @@ package core
 import (
 	"fmt"
 )
+
 //格子管理器
 type GridManager struct {
 	minX, maxX, cntX int
 	minY, maxY, cntY int
-	grids      map[int]*Grid //小格子
+	grids            map[int]*Grid //小格子
 }
 
 func NewGridManager(minX, maxX, cntX, minY, maxY, cntY int) *GridManager {
@@ -20,8 +21,8 @@ func NewGridManager(minX, maxX, cntX, minY, maxY, cntY int) *GridManager {
 		cntY:  cntY,
 		grids: make(map[int]*Grid),
 	}
-	for y := minY; y < maxY; y++ {
-		for x := minX; x < maxX; x++ {
+	for y := 0; y < cntY; y++ {
+		for x := 0; x < cntX; x++ {
 			//获取格子的id
 			gridid := y*cntX + x
 			gridminxx := minX + x*gridmanager.GetWidth()
@@ -106,7 +107,7 @@ func (gm *GridManager) GetSurroudingGridsByGrid(gid int) (grids []*Grid) {
 		if gridd.minY >= gm.minY+gm.GetHigh() {
 			grids = append(grids, gm.grids[gridd.gridId-gm.cntX])
 		}
-		if gridd.maxY <=gm.maxY-gm.GetHigh() {
+		if gridd.maxY <= gm.maxY-gm.GetHigh() {
 			grids = append(grids, gm.grids[gridd.gridId+gm.cntX])
 		}
 	}
@@ -117,4 +118,19 @@ func (gm *GridManager) GetSurroudingGridsByGrid(gid int) (grids []*Grid) {
 func (gm *GridManager) GetSurroudingGridsByPos(x, y int) (grids []*Grid) {
 	gid := gm.GetGidFromPos(x, y)
 	return gm.GetSurroudingGridsByGrid(gid)
+}
+//获取当前格子里的全部玩家id
+func (gm *GridManager) GetPidsByGid(gid int) []int {
+	playerids := gm.grids[gid].GetAllPlayerIds()
+	return playerids
+}
+//通过位置获取周围玩家的id
+func (gm *GridManager) GetSurroundPidsByPos(x, y int) (surroundPlayerId []int) {
+	gid := gm.GetGidFromPos(x, y)
+	surroundgids := gm.GetSurroudingGridsByGrid(gid)
+	for _, gid := range surroundgids {
+		surroundPlayerId = append(surroundPlayerId, gm.GetPidsByGid(gid.gridId)...)
+	}
+	fmt.Println(len(surroundgids),"**********")
+	return
 }

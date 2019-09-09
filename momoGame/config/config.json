@@ -5,5 +5,5 @@
   "Version": "tcp4",
   "WorkSize": 4,
   "TashqueSize": 1000,
-  "MustConnCount": 2
+  "MustConnCount": 20
 }
