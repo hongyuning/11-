@@ -57,3 +57,12 @@ wm.PlayerLock.RLock()
 wm.PlayerLock.RUnlock()
 return  players
 }
+func (wm *WorldManager)GetPlayersByGrid(gid int)[]*Player{
+pids:=wm.gridmgr.GetPidsByGid(gid)
+players:=make([]*Player,0,len(pids))
+for _,pid:=range  pids{
+	player:=wm.GetPlayByPid(pid)
+	players=append(players,player)
+}
+return  players
+}

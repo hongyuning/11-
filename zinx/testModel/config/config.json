@@ -3,7 +3,7 @@
   "Port": 8848,
   "Name": "998549",
   "Version": "tcp4",
-  "WorkSize": 4,
+  "WorkSize": 10,
   "TashqueSize": 1000,
-  "MustConnCount": 2
+  "MustConnCount": 1000
 }

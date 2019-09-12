@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"math/rand"
+
 	"sync"
 	message "zinx/V1-basic-server/momoGame/PB-protobuff"
 	"zinx/V1-basic-server/zinx/ZinxframeWork/iface"
@@ -132,7 +133,7 @@ func (p *Player) SybcSurroundPlayersPostion() {
 	}
 	p.SendMsg(202, &syncPlayersProto)
 }
-func (p *Player)getSurroundPlayersByPos()[]*Player{
+func (p *Player) getSurroundPlayersByPos() []*Player {
 	//通过位置得到周围所有的玩家id
 	pids := WorldMgrGlobal.gridmgr.GetSurroundPidsByPos(p.X, p.Z)
 	//通过玩家id找到所有的玩家
@@ -144,6 +145,7 @@ func (p *Player)getSurroundPlayersByPos()[]*Player{
 	}
 	return players
 }
+
 //玩家下线
 func (p *Player) OffLine() {
 	fmt.Println("playerid:", p.Pid, ", 即将下线!")
@@ -164,20 +166,121 @@ func (p *Player) OffLine() {
 	//4. 从格子管理器中，将player位置信息删掉
 	WorldMgrGlobal.gridmgr.RemovePlayerIdFromGridByPos(p.Pid, p.X, p.Z)
 }
+
 //同步玩家位置
-func (p *Player)UpdataPostion(X,Y,Z,V float32){
-protodata:=message.BroadCast{
-	Pid:                  int32(p.Pid),
-	Tp:                   4,
-	Data:                 &message.BroadCast_P{P:&message.Position{
-		X:                    X,
-		Y:                    Y,
-		Z:                    Z,
-		V:                    V,
-	}},
+func (p *Player) UpdataPostion(X, Y, Z, V float32) {
+
+	//处理跨格子显示问题
+	//1. 计算当前的玩家是否已经跨越格子了
+	//a. 旧的格子id：oldgid：   13
+	oldgrid := WorldMgrGlobal.gridmgr.GetGidFromPos(p.X, p.Z)
+	//b. 新的格子id：newgid    9
+	newgrid := WorldMgrGlobal.gridmgr.GetGidFromPos(int(X), int(Z))
+	//c . 判断，如果格子id发生变化
+	if oldgrid != newgrid {
+		//触发格子切换的逻辑
+		//将player添加到新的grid中
+		WorldMgrGlobal.gridmgr.AddPlayerIdToGrid(p.Pid, newgrid) //todo 为什么只是添加了玩家的id
+		//从旧的grid删除player
+		WorldMgrGlobal.gridmgr.RemovePlayIdFromGrid(p.Pid, oldgrid)
+		//触发个其他玩家显示的逻辑 <<====
+		p.OnExchangeGrid(oldgrid, newgrid)
+	}
+	//更新玩家位置
+	p.X = int(X)
+	p.Y = int(Y)
+	p.Z = int(Z)
+	p.V = int(V)
+	protodata := message.BroadCast{
+		Pid: int32(p.Pid),
+		Tp:  4,
+		Data: &message.BroadCast_P{P: &message.Position{
+			X: X,
+			Y: Y,
+			Z: Z,
+			V: V,
+		}},
+	}
+	players := p.getSurroundPlayersByPos()
+	for _, player := range players {
+		player.SendMsg(200, &protodata)
+	}
 }
-players:=p.getSurroundPlayersByPos()
-for _,player:=range  players{
-	player.SendMsg(200,&protodata)
-}
+
+//玩家的显示逻辑
+func (p *Player) OnExchangeGrid(oldgridid, newgridid int) {
+	fmt.Println("玩家格子显示逻辑被调用.....")
+	oldSurroundGrids := WorldMgrGlobal.gridmgr.GetSurroudingGridsByGrid(oldgridid)
+	newSurroundGrids := WorldMgrGlobal.gridmgr.GetSurroudingGridsByGrid(newgridid)
+	oldgridsGroup := make(map[int]bool, len(oldSurroundGrids))
+	for _, grid := range oldSurroundGrids {
+		oldgridsGroup[grid.gridId] = true
+	}
+	newgridsGroup := make(map[int]bool, len(newSurroundGrids))
+	for _, gridd := range newSurroundGrids {
+		newgridsGroup[gridd.gridId] = true
+	}
+	LeaveGrids := make([]*Grid, 0)
+	for _, oldgridsid := range oldSurroundGrids {
+		if !newgridsGroup[oldgridsid.gridId] {
+			//获取到需要离开视野的格子id集合
+			LeaveGrids = append(LeaveGrids, oldgridsid)
+		}
+	}
+	protodata := message.SyncPid{
+		Pid: int32(p.Pid),
+	}
+
+	//得到格子
+	for _, grid := range LeaveGrids {
+		players := WorldMgrGlobal.GetPlayersByGrid(grid.gridId)
+		for _, playerr := range players {
+			//向每个玩家播报自己，要求在格子里存储
+			playerr.SendMsg(201, &protodata)
+			//向自己播报每个玩家的位置
+			Another_prodata := message.SyncPid{
+				Pid: int32(playerr.Pid),
+			}
+			//发送给自己其他玩家
+			p.SendMsg(201, &Another_prodata)
+		}
+	}
+     mine_protoPostion:=message.BroadCast{
+		 Pid:                  int32(p.Pid),
+		 Tp:                   2,
+		 Data:                 &message.BroadCast_P{P:&message.Position{
+			 X:                    float32(p.X),
+			 Y:                    float32(p.Y),
+			 Z:                    float32(p.Z),
+			 V:                    float32(p.V),
+		 }},
+	 }
+
+
+	//视野显示处理
+	//1.找到需要显示的格子
+	for _, grid := range newSurroundGrids {
+		//找到旧格子里没有的格子
+        if !oldgridsGroup[grid.gridId]{
+         newplayers:= WorldMgrGlobal.GetPlayersByGrid(grid.gridId)
+        	for _,player:=range newplayers{
+        		//1.向所有玩家广播自己的位置
+        		player.SendMsg(200,&mine_protoPostion)
+        		//2.向自己广播所有玩家的位置
+        		Another_Player_Postion:=message.BroadCast{
+					Pid:                  int32(player.Pid),
+					Tp:                   2,
+					Data:                 &message.BroadCast_P{P:&message.Position{
+						X:                    float32(player.X),
+						Y:                    float32(player.Y),
+						Z:                    float32(player.Z),
+						V:                    float32(player.V),
+					}},
+				}
+				p.SendMsg(200,&Another_Player_Postion)
+			}//for
+
+		}
+	}
+
 }

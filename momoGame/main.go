@@ -24,7 +24,7 @@ func OnConnStartHookFunc(conn iface.IConnection) {
 	//创建玩家
 	player := core.NewPlayer(conn)
 	player.SyncPid()
-	player.SyncPosition()
+	//player.SyncPosition()
 	conn.SetProperty("pid",player.Pid)
 
 	//添加世界管理器

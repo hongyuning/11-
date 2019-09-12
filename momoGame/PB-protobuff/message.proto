@@ -15,6 +15,7 @@ message BroadCast {
         int32 AcctionData = 5;
     }
 }
+
 message Position {
     float X = 1;
     float Y = 2;
